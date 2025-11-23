@@ -16,6 +16,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import java.io.File
 
 import java.text.SimpleDateFormat
 import java.util.*
@@ -112,13 +120,15 @@ fun TaskHistoryScreen(
 fun TaskHistoryItem(task: TaskEntity) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            // 1. HEADER (ID and Type)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -133,24 +143,114 @@ fun TaskHistoryItem(task: TaskEntity) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // 2. SPECIFIC CONTENT BASED ON TYPE
+            when (task.taskType) {
+                "text_reading" -> {
+                    // For text reading, we usually display the text, but since we display
+                    // text at the bottom for all tasks, we can skip specific rendering here
+                    // or just leave a placeholder if needed.
+                }
+                "image_description" -> {
+                    if (task.imageUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = task.imageUrl,
+                            contentDescription = "Task Image",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .padding(vertical = 4.dp),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+                "photo_capture" -> {
+                    if (task.imagePath.isNotEmpty()) {
+                        val imageFile = File(task.imagePath)
+                        if (imageFile.exists()) {
+                            Image(
+                                painter = rememberAsyncImagePainter(imageFile),
+                                contentDescription = "Captured Photo",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(150.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .padding(vertical = 4.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 3. METADATA (Duration | Timestamp)
             Text(
                 text = "Duration: ${task.durationSec}s | ${formatTimestamp(task.timestamp)}",
-                fontSize = 14.sp,
-                color = Color.Gray
+                fontSize = 12.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(vertical = 4.dp)
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            // 4. TEXT CONTENT (Description or Read Text)
+            if (task.text.isNotEmpty()) {
+                Text(
+                    text = task.text,
+                    fontSize = 14.sp,
+                    color = Color.Black,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 20.sp
+                )
+            }
 
-            Text(
-                text = task.text,
-                fontSize = 14.sp,
-                color = Color.Black,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            // 5. *** NEW: AUDIO PATH DISPLAY ***
+            /*if (task.audioPath.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Container for the audio path to make it look distinct
+                Surface(
+                    color = Color(0xFFF5F5F5), // Light gray background
+                    shape = RoundedCornerShape(4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Icon to indicate this is an audio file
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow, // Make sure to import Icons.Default.Mic
+                            contentDescription = "Audio File",
+                            tint = Color(0xFF667eea),
+                            modifier = Modifier.size(16.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // The actual path text
+                        Column {
+                            Text(
+                                text = "Saved Audio Path:",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray
+                            )
+                            Text(
+                                text = task.audioPath,
+                                fontSize = 11.sp,
+                                color = Color.DarkGray,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 2
+                            )
+                        }
+                    }
+                }
+            }*/
         }
     }
 }
+
 
 fun formatDuration(seconds: Int): String {
     val minutes = seconds / 60

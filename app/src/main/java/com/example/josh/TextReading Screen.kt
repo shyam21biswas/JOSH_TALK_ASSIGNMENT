@@ -1,7 +1,8 @@
 package com.example.josh
 
-
 import android.Manifest
+import android.content.Context
+import android.os.Build
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -22,18 +23,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
-
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.delay
 
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.widget.Toast
+import androidx.compose.ui.res.painterResource
 
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -49,8 +49,11 @@ fun TextReadingScreen(
     var isRecording by remember { mutableStateOf(false) }
     var recordingDuration by remember { mutableStateOf(0) }
     var audioPath by remember { mutableStateOf<String?>(null) }
+    var savedAudioPath by remember { mutableStateOf<String?>(null) }  // Final saved path
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var audioRecorder by remember { mutableStateOf<AudioRecorder?>(null) }
+    var audioPlayer by remember { mutableStateOf<AudioPlayer?>(null) }
+    var isPlaying by remember { mutableStateOf(false) }
 
     var checkbox1 by remember { mutableStateOf(false) }
     var checkbox2 by remember { mutableStateOf(false) }
@@ -58,23 +61,62 @@ fun TextReadingScreen(
 
     val allChecked = checkbox1 && checkbox2 && checkbox3
 
+
+
+    // Get vibrator service
+    val vibrator = remember {
+        context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+    }
+
+    fun vibrateShort() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator?.vibrate(
+                VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator?.vibrate(50)
+        }
+    }
+
     LaunchedEffect(Unit) {
+
         viewModel.fetchProduct()
     }
 
+    // Recording timer with auto-stop
     LaunchedEffect(isRecording) {
         if (isRecording) {
             while (isRecording && recordingDuration < Constants.MAX_RECORDING_DURATION) {
                 delay(1000)
                 recordingDuration++
             }
-            if (recordingDuration >= Constants.MAX_RECORDING_DURATION) {
-                audioRecorder?.stopRecording()
+            // Auto-stop when max duration reached
+            if (recordingDuration >= Constants.MAX_RECORDING_DURATION && isRecording) {
+                val path = audioRecorder?.stopRecording()
+                audioRecorder = null
                 isRecording = false
-                errorMessage = "Recording too long (max ${Constants.MAX_RECORDING_DURATION} s)"
-                audioPath = null
-                recordingDuration = 0
+
+                if (path != null && recordingDuration >= Constants.MIN_RECORDING_DURATION) {
+                    savedAudioPath = path
+                    errorMessage = null
+                } else {
+                    errorMessage = "Failed to save recording"
+                    audioPath = null
+                    recordingDuration = 0
+                }
             }
+        }
+    }
+
+    // Cleanup on dispose
+    DisposableEffect(Unit) {
+        onDispose {
+            audioRecorder?.stopRecording()
+            audioRecorder = null
+            audioPlayer?.release()
+            audioPlayer = null
+
         }
     }
 
@@ -116,12 +158,15 @@ fun TextReadingScreen(
                             lineHeight = 24.sp
                         )
                     } else {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
                     }
                 }
             }
 
-            if (audioPath == null) {
+            // Only show mic button when no recording is saved
+            if (savedAudioPath == null) {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 if (!micPermission.status.isGranted) {
@@ -136,25 +181,43 @@ fun TextReadingScreen(
                         isRecording = isRecording,
                         recordingDuration = recordingDuration,
                         onStartRecording = {
+
+                            vibrateShort()
                             errorMessage = null
+                            recordingDuration = 0
                             audioRecorder = AudioRecorder(context)
                             val path = audioRecorder?.startRecording()
                             if (path != null) {
+                                audioPath = path
                                 isRecording = true
-                                recordingDuration = 0
+                            } else {
+                                errorMessage = "Failed to start recording"
+                                audioRecorder = null
                             }
                         },
                         onStopRecording = {
-                            audioRecorder?.stopRecording()
-                            isRecording = false
 
-                            if (recordingDuration < Constants.MIN_RECORDING_DURATION) {
-                                errorMessage = "Recording too short (min ${Constants.MIN_RECORDING_DURATION} s)"
-                                audioPath = null
-                                recordingDuration = 0
-                            } else {
-                                audioPath = audioRecorder?.startRecording()
-                                errorMessage = null
+                            vibrateShort()
+                            if (isRecording) {
+                                val path = audioRecorder?.stopRecording()
+                                audioRecorder = null
+                                isRecording = false
+
+                                if (recordingDuration < Constants.MIN_RECORDING_DURATION) {
+                                    errorMessage = "Recording too short (min ${Constants.MIN_RECORDING_DURATION} s)"
+                                    audioPath = null
+                                    savedAudioPath = null
+                                    recordingDuration = 0
+                                } else if (path == null) {
+                                    errorMessage = "Failed to save recording"
+                                    audioPath = null
+                                    savedAudioPath = null
+                                    recordingDuration = 0
+                                } else {
+                                    // Save the path only after successful stop
+                                    savedAudioPath = path
+                                    errorMessage = null
+                                }
                             }
                         }
                     )
@@ -169,6 +232,7 @@ fun TextReadingScreen(
                     }
                 }
             } else {
+                // Show submit UI after recording is saved
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Card(
@@ -184,6 +248,18 @@ fun TextReadingScreen(
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
 
+                        // Playback Button
+
+                        AudioPlaybackPlayer(
+                            audioPath = savedAudioPath,
+                            recordingDuration = recordingDuration,
+                            context = context,
+
+                            playerStyle = AudioPlayerStyle.COMPACT
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -191,6 +267,7 @@ fun TextReadingScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Checkbox(checked = checkbox1, onCheckedChange = { checkbox1 = it })
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text("No background noise", fontSize = 14.sp)
                         }
 
@@ -201,6 +278,7 @@ fun TextReadingScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Checkbox(checked = checkbox2, onCheckedChange = { checkbox2 = it })
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text("No mistakes while reading", fontSize = 14.sp)
                         }
 
@@ -209,6 +287,7 @@ fun TextReadingScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Checkbox(checked = checkbox3, onCheckedChange = { checkbox3 = it })
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text("Beech me koi galti nahi hai", fontSize = 14.sp)
                         }
                     }
@@ -222,11 +301,16 @@ fun TextReadingScreen(
                 ) {
                     OutlinedButton(
                         onClick = {
+                            audioPlayer?.release()
+                            audioPlayer = null
+                            isPlaying = false
                             audioPath = null
+                            savedAudioPath = null
                             recordingDuration = 0
                             checkbox1 = false
                             checkbox2 = false
                             checkbox3 = false
+                            errorMessage = null
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
@@ -239,14 +323,18 @@ fun TextReadingScreen(
 
                     Button(
                         onClick = {
+                            audioPlayer?.release()
+                            audioPlayer = null
                             product?.let {
+                                //data pushed to database...............
                                 viewModel.saveTask(
                                     text = it.description,
-                                    audioPath = audioPath ?: "",
+                                    audioPath = savedAudioPath ?: "",
                                     durationSec = recordingDuration
                                 )
                             }
                             onTaskComplete()
+                            Toast.makeText(context, "Task Submit", Toast.LENGTH_SHORT).show()
                         },
                         enabled = allChecked,
                         modifier = Modifier.weight(1f),
@@ -256,6 +344,7 @@ fun TextReadingScreen(
                         )
                     ) {
                         Text("Submit", color = if (allChecked) Color(0xFF667eea) else Color.Gray)
+
                     }
                 }
             }
@@ -263,6 +352,7 @@ fun TextReadingScreen(
     }
 }
 
+// Keep your ORIGINAL MicButton code - this was working!
 @Composable
 fun MicButton(
     isRecording: Boolean,
@@ -311,7 +401,7 @@ fun MicButton(
             }
 
             Icon(
-                imageVector = Icons.Default.PlayArrow,
+                painter = painterResource(id = R.drawable.mic),
                 contentDescription = "Microphone",
                 modifier = Modifier.size(48.dp),
                 tint = if (isRecording) Color.White else Color(0xFF667eea)
@@ -336,8 +426,3 @@ fun MicButton(
         }
     }
 }
-
-
-// ... (Your existing imports)
-
-

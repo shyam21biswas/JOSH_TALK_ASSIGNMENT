@@ -10,15 +10,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 
+
 @Composable
 fun TaskSelectionScreen(
     onTextReadingClick: () -> Unit,
+    onImageDescriptionClick: () -> Unit,
+    onPhotoCaptureClick: () -> Unit,
     onViewHistory: () -> Unit
 ) {
     GradientBackground {
@@ -39,7 +44,7 @@ fun TaskSelectionScreen(
 
             TaskCard(
                 title = "Text Reading Task",
-                icon = Icons.Default.Email,
+                paint = R.drawable.text_to_speech,
                 enabled = true,
                 onClick = onTextReadingClick
             )
@@ -48,18 +53,18 @@ fun TaskSelectionScreen(
 
             TaskCard(
                 title = "Image Description Task",
-                icon = Icons.Default.Face,
-                enabled = false,
-                onClick = {}
+                paint = R.drawable.image_search,
+                enabled = true,
+                onClick = onImageDescriptionClick
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             TaskCard(
                 title = "Photo Capture Task",
-                icon = Icons.Default.AccountBox,
-                enabled = false,
-                onClick = {}
+                paint = R.drawable.camera,
+                enabled = true,
+                onClick = onPhotoCaptureClick
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -75,7 +80,7 @@ fun TaskSelectionScreen(
                 border = BorderStroke(2.dp, Color.White)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Build,
+                    painter = painterResource(id = R.drawable.outline_history_edu_24),
                     contentDescription = null,
                     modifier = Modifier.padding(end = 8.dp)
                 )
@@ -85,18 +90,15 @@ fun TaskSelectionScreen(
     }
 }
 
-
-
-
 @Composable
 fun TaskCard(
     title: String,
-    icon: ImageVector,
+    paint: Int,
     enabled: Boolean,
     onClick: () -> Unit
 ) {
     Card(
-        onClick = onClick ,
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp),
@@ -112,7 +114,7 @@ fun TaskCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = icon,
+                painter = painterResource(id = paint),
                 contentDescription = null,
                 modifier = Modifier.size(32.dp),
                 tint = if (enabled) Color(0xFF667eea) else Color.Gray

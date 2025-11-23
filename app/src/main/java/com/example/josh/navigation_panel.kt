@@ -9,11 +9,16 @@ import androidx.navigation.compose.rememberNavController
 import androidx.compose.ui.platform.LocalContext
 
 
+
+//help to route ..................
 sealed class Screen(val route: String) {
     object Start : Screen("start")
     object NoiseTest : Screen("noise_test")
     object TaskSelection : Screen("task_selection")
     object TextReading : Screen("text_reading")
+    object ImageDescription : Screen("image_description")
+
+    object PhotoCapture : Screen("photo_capture")
     object TaskHistory : Screen("task_history")
 }
 
@@ -49,12 +54,29 @@ fun NavGraph() {
         composable(Screen.TaskSelection.route) {
             TaskSelectionScreen(
                 onTextReadingClick = { navController.navigate(Screen.TextReading.route) },
+                onImageDescriptionClick = { navController.navigate(Screen.ImageDescription.route) },
+                onPhotoCaptureClick = { navController.navigate(Screen.PhotoCapture.route) },
+
                 onViewHistory = { navController.navigate(Screen.TaskHistory.route) }
             )
         }
 
         composable(Screen.TextReading.route) {
             TextReadingScreen(
+                onTaskComplete = { navController.popBackStack() },
+                viewModel = viewModel
+            )
+        }
+
+        composable(Screen.ImageDescription.route) {
+            ImageDescriptionScreen(
+                onTaskComplete = { navController.popBackStack() },
+                viewModel = viewModel
+            )
+        }
+
+        composable(Screen.PhotoCapture.route) {
+            PhotoCaptureScreen(
                 onTaskComplete = { navController.popBackStack() },
                 viewModel = viewModel
             )

@@ -78,6 +78,42 @@ class TaskViewModel(
             }
         }
     }
+
+    fun saveImageDescriptionTask(imageUrl: String, audioPath: String, durationSec: Int) {
+        viewModelScope.launch {
+            val timestamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+                .format(Date())
+
+            val task = TaskEntity(
+                taskType = "image_description",
+                text = "",
+                audioPath = audioPath,
+                imageUrl = imageUrl,
+                durationSec = durationSec,
+                timestamp = timestamp
+            )
+
+            repository.insertTask(task)
+        }
+    }
+
+    fun savePhotoCaptureTask(imagePath: String, audioPath: String, durationSec: Int) {
+        viewModelScope.launch {
+            val timestamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+                .format(Date())
+
+            val task = TaskEntity(
+                taskType = "photo_capture",
+                text = "",
+                audioPath = audioPath,
+                imagePath = imagePath,
+                durationSec = durationSec,
+                timestamp = timestamp
+            )
+
+            repository.insertTask(task)
+        }
+    }
 }
 
 

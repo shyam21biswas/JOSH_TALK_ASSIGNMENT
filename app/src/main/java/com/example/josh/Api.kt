@@ -1,17 +1,12 @@
 package com.example.josh
 
 import com.google.gson.annotations.SerializedName
-
 import retrofit2.http.GET
-
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
-
-
-
 
 
 
@@ -24,16 +19,15 @@ data class Product(
     val title: String,
     val description: String,
     @SerializedName("price")
-    val price: Double
+    val price: Double,
+    val images: List<String> = emptyList(),
+    val thumbnail: String = ""
 )
-
-
 
 interface ApiService {
     @GET("products")
     suspend fun getProducts(): ProductResponse
 }
-
 
 object RetrofitInstance {
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -56,6 +50,7 @@ object RetrofitInstance {
 }
 
 
+//constraint that use all over the app...........
 object Constants {
     const val BASE_URL = "https://dummyjson.com/"
     const val MIN_RECORDING_DURATION = 10

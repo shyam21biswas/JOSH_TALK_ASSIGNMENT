@@ -86,6 +86,8 @@ fun NoiseTestScreen(onTestPassed: () -> Unit) {
                     .padding(bottom = 32.dp),
                 contentAlignment = Alignment.Center
             ) {
+                //graphic for making the live noise check
+
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val radius = if (isTesting) size.minDimension / 2 * scale else size.minDimension / 2
 
@@ -114,7 +116,7 @@ fun NoiseTestScreen(onTestPassed: () -> Unit) {
             when (testResult) {
                 "passed" -> {
                     Text(
-                        text = "✅ Good to proceed",
+                        text = "Good to proceed",
                         fontSize = 20.sp,
                         color = Color(0xFF4CAF50),
                         fontWeight = FontWeight.Bold,
@@ -135,7 +137,7 @@ fun NoiseTestScreen(onTestPassed: () -> Unit) {
                 }
                 "failed" -> {
                     Text(
-                        text = "❌ Please move to a quieter place",
+                        text = "Please move to a quieter place",
                         fontSize = 18.sp,
                         color = Color(0xFFF44336),
                         fontWeight = FontWeight.Bold,

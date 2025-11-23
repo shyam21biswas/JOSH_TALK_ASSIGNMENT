@@ -7,14 +7,18 @@ import android.os.Build
 import java.io.File
 import java.io.IOException
 
+
+
 class AudioRecorder(private val context: Context) {
     private var recorder: MediaRecorder? = null
     private var outputFile: File? = null
+    private var currentFilePath: String? = null
 
     fun startRecording(): String? {
         return try {
             val fileName = "audio_${System.currentTimeMillis()}.m4a"
             outputFile = File(context.getExternalFilesDir(null), fileName)
+            currentFilePath = outputFile?.absolutePath
 
             recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 MediaRecorder(context)
@@ -30,26 +34,32 @@ class AudioRecorder(private val context: Context) {
                 start()
             }
 
-            outputFile?.absolutePath
+            currentFilePath
         } catch (e: IOException) {
             e.printStackTrace()
             null
         }
     }
 
-    fun stopRecording() {
-        try {
+    fun stopRecording(): String? {
+        return try {
             recorder?.apply {
                 stop()
                 release()
             }
             recorder = null
+            currentFilePath
         } catch (e: Exception) {
             e.printStackTrace()
+            null
         }
     }
 
     fun getAmplitude(): Int {
-        return recorder?.maxAmplitude ?: 0
+        return try {
+            recorder?.maxAmplitude ?: 0
+        } catch (e: Exception) {
+            0
+        }
     }
 }
