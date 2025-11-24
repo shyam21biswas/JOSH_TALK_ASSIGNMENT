@@ -186,3 +186,5 @@ Other task types use similar structures (see `samples/` folder for examples).
 
 
 ---
+# This app is build in native  Android  using Android Studio .
+
