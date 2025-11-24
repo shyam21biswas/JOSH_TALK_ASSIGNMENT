@@ -18,7 +18,14 @@ Create a Kotlin Multiplatform (KMM) + Compose Multiplatform (CMP) prototype that
 
 
 
-## 📱 Screenshots
+## 📱 Screenshots!
+[Screenshot](https://drive.google.com/uc?export=view&id=1bAJjNqfmGIrQkCEuyW7FTq__hMKxB7t6)
+
+![Screenshot](https://drive.google.com/uc?export=view&id=FILE_ID)
+
+![Screenshot](https://drive.google.com/uc?export=view&id=FILE_ID)
+
+
 
 ### App Flow
 1. **Start Screen** - Welcome with gradient background
